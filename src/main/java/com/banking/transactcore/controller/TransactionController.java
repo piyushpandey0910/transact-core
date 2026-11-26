@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.banking.transactcore.dto.TransferRequest;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -32,6 +33,14 @@ public class TransactionController {
             @Valid @RequestBody WithdrawalRequest request) {
 
         TransactionResponse response = transactionService.withdraw(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/transfer")
+    public ResponseEntity<TransactionResponse> transfer(
+            @Valid @RequestBody TransferRequest request) {
+
+        TransactionResponse response = transactionService.transfer(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

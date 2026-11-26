@@ -26,4 +26,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByAccountNumberForUpdate(
             @Param("accountNumber") String accountNumber
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM Account a WHERE a.accountNumber IN :accountNumbers ORDER BY a.accountNumber")
+    List<Account> findAccountsForTransfer(
+            @Param("accountNumbers") List<String> accountNumbers);
 }

@@ -13,8 +13,10 @@ import com.banking.transactcore.repository.AccountRepository;
 import com.banking.transactcore.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.banking.transactcore.dto.TransferRequest;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class TransactionService {
@@ -100,6 +102,70 @@ public class TransactionService {
                 savedTransaction.getAmount(),
                 account.getAccountNumber(),
                 account.getBalance(),
+                savedTransaction.getDescription(),
+                savedTransaction.getCreatedAt()
+        );
+    }
+
+    @Transactional
+    public TransactionResponse transfer(TransferRequest request) {
+
+        if (request.getSourceAccountNumber().equals(request.getDestinationAccountNumber())) {
+            throw new IllegalArgumentException("Source and destination accounts cannot be the same");
+        }
+
+        List<String> accountNumbers = List.of(
+                request.getSourceAccountNumber(),
+                request.getDestinationAccountNumber()
+        );
+
+        List<Account> accounts = accountRepository.findAccountsForTransfer(accountNumbers);
+
+        if (accounts.size() != 2) {
+            throw new AccountNotFoundException("One or both accounts were not found");
+        }
+
+        Account sourceAccount = accounts.stream()
+                .filter(account -> account.getAccountNumber().equals(request.getSourceAccountNumber()))
+                .findFirst()
+                .orElseThrow(() -> new AccountNotFoundException("Source account not found"));
+
+        Account destinationAccount = accounts.stream()
+                .filter(account -> account.getAccountNumber().equals(request.getDestinationAccountNumber()))
+                .findFirst()
+                .orElseThrow(() -> new AccountNotFoundException("Destination account not found"));
+
+        if (sourceAccount.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new InsufficientBalanceException(
+                    "Insufficient balance in source account. Available balance: "
+                            + sourceAccount.getBalance());
+        }
+
+        sourceAccount.setBalance(sourceAccount.getBalance().subtract(request.getAmount()));
+        destinationAccount.setBalance(destinationAccount.getBalance().add(request.getAmount()));
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionReference(referenceGenerator.generateReference());
+        transaction.setTransactionType(TransactionType.TRANSFER);
+        transaction.setStatus(TransactionStatus.SUCCESS);
+        transaction.setAmount(request.getAmount());
+        transaction.setSourceAccount(sourceAccount);
+        transaction.setDestinationAccount(destinationAccount);
+        transaction.setDescription(request.getDescription());
+
+        accountRepository.save(sourceAccount);
+        accountRepository.save(destinationAccount);
+
+        Transaction savedTransaction = transactionRepository.save(transaction);
+
+        return new TransactionResponse(
+                savedTransaction.getId(),
+                savedTransaction.getTransactionReference(),
+                savedTransaction.getTransactionType(),
+                savedTransaction.getStatus(),
+                savedTransaction.getAmount(),
+                sourceAccount.getAccountNumber(),
+                sourceAccount.getBalance(),
                 savedTransaction.getDescription(),
                 savedTransaction.getCreatedAt()
         );
