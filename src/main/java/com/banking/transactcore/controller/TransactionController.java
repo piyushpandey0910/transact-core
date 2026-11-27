@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.banking.transactcore.dto.TransferRequest;
+import com.banking.transactcore.dto.TransactionHistoryResponse;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -42,5 +44,32 @@ public class TransactionController {
 
         TransactionResponse response = transactionService.transfer(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/account/{accountNumber}/history")
+    public ResponseEntity<List<TransactionHistoryResponse>> getAccountTransactionHistory(
+            @PathVariable String accountNumber) {
+
+        return ResponseEntity.ok(
+                transactionService.getAccountTransactionHistory(accountNumber)
+        );
+    }
+
+    @GetMapping("/reference/{transactionReference}")
+    public ResponseEntity<TransactionHistoryResponse> getTransactionByReference(
+            @PathVariable String transactionReference) {
+
+        return ResponseEntity.ok(
+                transactionService.getTransactionByReference(transactionReference)
+        );
+    }
+
+    @GetMapping("/reference/{transactionReference}/status")
+    public ResponseEntity<TransactionHistoryResponse> getTransactionStatus(
+            @PathVariable String transactionReference) {
+
+        return ResponseEntity.ok(
+                transactionService.getTransactionByReference(transactionReference)
+        );
     }
 }

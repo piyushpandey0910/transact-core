@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.banking.transactcore.exception.AccountNotFoundException;
 import com.banking.transactcore.exception.InsufficientBalanceException;
+import com.banking.transactcore.exception.TransactionNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -103,6 +104,11 @@ public class GlobalExceptionHandler {
         response.put("message", ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(TransactionNotFoundException.class)
+    public ResponseEntity<String> handleTransactionNotFound(TransactionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
 }

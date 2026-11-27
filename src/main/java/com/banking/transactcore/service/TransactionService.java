@@ -14,6 +14,8 @@ import com.banking.transactcore.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.banking.transactcore.dto.TransferRequest;
+import com.banking.transactcore.dto.TransactionHistoryResponse;
+import com.banking.transactcore.exception.TransactionNotFoundException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -168,6 +170,53 @@ public class TransactionService {
                 sourceAccount.getBalance(),
                 savedTransaction.getDescription(),
                 savedTransaction.getCreatedAt()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionHistoryResponse> getAccountTransactionHistory(String accountNumber) {
+
+        if (!accountRepository.existsByAccountNumber(accountNumber)) {
+            throw new AccountNotFoundException("Account not found with number: " + accountNumber);
+        }
+
+        List<Transaction> transactions = transactionRepository.findAccountTransactions(accountNumber);
+
+        return transactions.stream()
+                .map(this::convertToHistoryResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TransactionHistoryResponse getTransactionByReference(String transactionReference) {
+
+        Transaction transaction = transactionRepository.findByTransactionReference(transactionReference)
+                .orElseThrow(() -> new TransactionNotFoundException(
+                        "Transaction not found with reference: " + transactionReference));
+
+        return convertToHistoryResponse(transaction);
+    }
+
+    private TransactionHistoryResponse convertToHistoryResponse(Transaction transaction) {
+
+        String sourceAccountNumber = transaction.getSourceAccount() != null
+                ? transaction.getSourceAccount().getAccountNumber()
+                : null;
+
+        String destinationAccountNumber = transaction.getDestinationAccount() != null
+                ? transaction.getDestinationAccount().getAccountNumber()
+                : null;
+
+        return new TransactionHistoryResponse(
+                transaction.getId(),
+                transaction.getTransactionReference(),
+                transaction.getTransactionType(),
+                transaction.getStatus(),
+                transaction.getAmount(),
+                sourceAccountNumber,
+                destinationAccountNumber,
+                transaction.getDescription(),
+                transaction.getCreatedAt()
         );
     }
 }
